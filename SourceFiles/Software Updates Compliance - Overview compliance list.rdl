@@ -19,6 +19,9 @@
           <QueryParameter Name="@ExcludeProductList">
             <Value>=Join(Parameters!ExcludeProductList.Value,";")</Value>
           </QueryParameter>
+          <QueryParameter Name="@ExcludeClassificationList">
+            <Value>=Join(Parameters!ExcludeClassificationList.Value,";")</Value>
+          </QueryParameter>
           <QueryParameter Name="@MonthIndex">
             <Value>=Parameters!MonthIndex.Value</Value>
           </QueryParameter>
@@ -223,6 +226,25 @@ order by [ProductName]</CommandText>
       <Fields>
         <Field Name="ProductName">
           <DataField>ProductName</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+    <DataSet Name="ExcludeClassificationListQuery">
+      <Query>
+        <DataSourceName>DataSource1</DataSourceName>
+        <CommandText>--- "..nothing excluded" to be able to select nothing. 
+--- DO NOT CHANGE since NULL or "" will break the main report query
+Select [ClassificationName] = '..nothing excluded'
+UNION ALL
+select distinct CICI.CategoryInstanceName as [ClassificationName]
+from v_CICategoryInfo_All CICI
+where CICI.CategoryTypeName = 'UpdateClassification'
+order by [ClassificationName]</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="ClassificationName">
+          <DataField>ClassificationName</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
       </Fields>
@@ -1880,6 +1902,23 @@ order by [ProductName]</CommandText>
       </ValidValues>
       <MultiValue>true</MultiValue>
     </ReportParameter>
+    <ReportParameter Name="ExcludeClassificationList">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>..nothing excluded</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>Exclude updates with the following classifications:</Prompt>
+      <ValidValues>
+        <DataSetReference>
+          <DataSetName>ExcludeClassificationListQuery</DataSetName>
+          <ValueField>ClassificationName</ValueField>
+          <LabelField>ClassificationName</LabelField>
+        </DataSetReference>
+      </ValidValues>
+      <MultiValue>true</MultiValue>
+    </ReportParameter>
     <ReportParameter Name="CollectionIDs">
       <DataType>String</DataType>
       <DefaultValue>
@@ -1994,6 +2033,11 @@ order by [ProductName]</CommandText>
           <ColumnIndex>1</ColumnIndex>
           <RowIndex>0</RowIndex>
           <ParameterName>ExcludeProductList</ParameterName>
+        </CellDefinition>
+        <CellDefinition>
+          <ColumnIndex>1</ColumnIndex>
+          <RowIndex>1</RowIndex>
+          <ParameterName>ExcludeClassificationList</ParameterName>
         </CellDefinition>
         <CellDefinition>
           <ColumnIndex>0</ColumnIndex>

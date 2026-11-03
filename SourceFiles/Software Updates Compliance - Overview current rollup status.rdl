@@ -19,6 +19,9 @@
           <QueryParameter Name="@ExcludeProductList">
             <Value>=Join(Parameters!ExcludeProductList.Value,";")</Value>
           </QueryParameter>
+          <QueryParameter Name="@ExcludeClassificationList">
+            <Value>=Join(Parameters!ExcludeClassificationList.Value,";")</Value>
+          </QueryParameter>
            <QueryParameter Name="@MonthIndex">
             <Value>=Parameters!MonthIndex.Value</Value>
           </QueryParameter>
@@ -1824,6 +1827,18 @@
       <DataType>String</DataType>
       <AllowBlank>true</AllowBlank>
       <Prompt>ExcludeProductList</Prompt>
+      <Hidden>true</Hidden>
+      <MultiValue>true</MultiValue>
+    </ReportParameter>
+    <ReportParameter Name="ExcludeClassificationList">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>..nothing excluded</Value>
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>ExcludeClassificationList</Prompt>
       <Hidden>true</Hidden>
       <MultiValue>true</MultiValue>
     </ReportParameter>

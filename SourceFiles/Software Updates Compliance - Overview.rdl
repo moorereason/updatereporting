@@ -42,6 +42,9 @@ order by Name</CommandText>
           <QueryParameter Name="@CollectionIDs">
             <Value>=Parameters!CollectionIDs.Value</Value>
           </QueryParameter>
+          <QueryParameter Name="@ExcludeClassificationList">
+            <Value>=Parameters!ExcludeClassificationList.Value</Value>
+          </QueryParameter>
         </QueryParameters>
         <CommandText>DECLARE @AllSystems int	
 Set @AllSystems = (Select Count(vrs.ResourceID) from v_R_System vrs
@@ -54,7 +57,7 @@ Set @AllSystems = (Select Count(vrs.ResourceID) from v_R_System vrs
 			select  UCS.ResourceID
 			from v_UpdateComplianceStatus UCS
 			left join v_CITargetedMachines CTM on CTM.CI_ID = UCS.CI_ID and CTM.ResourceID = UCS.ResourceID
-			inner join v_CICategoryInfo_All CCI on CCI.CI_ID = UCS.CI_ID and CCI.CategoryTypeName = 'UpdateClassification' and (CCI.CategoryInstanceName = 'Security Updates' or CCI.CategoryInstanceName = 'Critical Updates')
+			inner join v_CICategoryInfo_All CCI on CCI.CI_ID = UCS.CI_ID and CCI.CategoryTypeName = 'UpdateClassification' and (CCI.CategoryInstanceName = 'Security Updates' or CCI.CategoryInstanceName = 'Critical Updates') and CCI.CategoryInstanceName not in (@ExcludeClassificationList)
 			inner join v_UpdateInfo UPD on UPD.CI_ID = UCS.CI_ID
 			where UCS.ResourceID IN (Select ResourceID from v_FullCollectionMembership fcm where fcm.CollectionID IN (@CollectionIDs)) 
 			and UCS.Status = 2 and CTM.ResourceID is null and UPD.IsSuperseded = 0 
@@ -103,6 +106,26 @@ order by [ProductName]</CommandText>
         </Field>
       </Fields>
     </DataSet>
+    <DataSet Name="ExcludeClassificationListQuery">
+      <Query>
+        <DataSourceName>DataSource1</DataSourceName>
+        <CommandText>--- "..nothing excluded" to be able to select nothing. 
+--- DO NOT CHANGE since NULL or "" will break the main report query
+Select [ClassificationName] = '..nothing excluded'
+UNION ALL
+select distinct CICI.CategoryInstanceName as [ClassificationName]
+from v_CICategoryInfo_All CICI
+where CICI.CategoryTypeName = 'UpdateClassification'
+order by [ClassificationName]</CommandText>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+      <Fields>
+        <Field Name="ClassificationName">
+          <DataField>ClassificationName</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
     <DataSet Name="UpdatesSummary">
       <SharedDataSet>
         <SharedDataSetReference>UpdatesSummary</SharedDataSetReference>
@@ -112,6 +135,9 @@ order by [ProductName]</CommandText>
           </QueryParameter>
           <QueryParameter Name="@ExcludeProductList">
             <Value>=Join(Parameters!ExcludeProductList.Value,";")</Value>
+          </QueryParameter>
+          <QueryParameter Name="@ExcludeClassificationList">
+            <Value>=Join(Parameters!ExcludeClassificationList.Value,";")</Value>
           </QueryParameter>
           <QueryParameter Name="@MonthIndex">
             <Value>=Parameters!MonthIndex.Value</Value>
@@ -419,6 +445,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -485,6 +514,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -792,6 +824,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -852,6 +887,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -912,6 +950,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -1195,6 +1236,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -1258,6 +1302,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -1321,6 +1368,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -1607,6 +1657,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -1670,6 +1723,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -1733,6 +1789,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -2019,6 +2078,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -2082,6 +2144,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -2145,6 +2210,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -2753,6 +2821,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="CollectionIDs">
                                   <Value>=Parameters!CollectionIDs.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -3158,6 +3229,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="ExcludeDeplBitMask">
                                   <Value>=Parameters!ExcludeDeplBitMask.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -3221,6 +3295,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="ExcludeDeplBitMask">
                                   <Value>=Parameters!ExcludeDeplBitMask.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -3528,6 +3605,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="ExcludeDeplBitMask">
                                   <Value>=Parameters!ExcludeDeplBitMask.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -3591,6 +3671,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="ExcludeDeplBitMask">
                                   <Value>=Parameters!ExcludeDeplBitMask.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -3976,6 +4059,9 @@ ORDER BY [ProductName];</CommandText>
                                 <Parameter Name="MonthIndex">
                                   <Value>=Parameters!MonthIndex.Value</Value>
                                 </Parameter>
+                              <Parameter Name="ExcludeClassificationList">
+                                <Value>=Parameters!ExcludeClassificationList.Value</Value>
+                              </Parameter>
                               </Parameters>
                             </Drillthrough>
                           </Action>
@@ -5816,6 +5902,23 @@ ORDER BY [ProductName];</CommandText>
       </ValidValues>
       <MultiValue>true</MultiValue>
     </ReportParameter>
+    <ReportParameter Name="ExcludeClassificationList">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>..nothing excluded</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>Exclude updates with the following classifications:</Prompt>
+      <ValidValues>
+        <DataSetReference>
+          <DataSetName>ExcludeClassificationListQuery</DataSetName>
+          <ValueField>ClassificationName</ValueField>
+          <LabelField>ClassificationName</LabelField>
+        </DataSetReference>
+      </ValidValues>
+      <MultiValue>true</MultiValue>
+    </ReportParameter>
     <ReportParameter Name="ExcludeDeplBitMask">
       <DataType>String</DataType>
       <DefaultValue>
@@ -5902,6 +6005,11 @@ ORDER BY [ProductName];</CommandText>
           <ColumnIndex>0</ColumnIndex>
           <RowIndex>2</RowIndex>
           <ParameterName>MonthIndex</ParameterName>
+        </CellDefinition>
+        <CellDefinition>
+          <ColumnIndex>1</ColumnIndex>
+          <RowIndex>2</RowIndex>
+          <ParameterName>ExcludeClassificationList</ParameterName>
         </CellDefinition>
       </CellDefinitions>
     </GridLayoutDefinition>

@@ -19,6 +19,9 @@
           <QueryParameter Name="@CollectionIDs">
             <Value>=Parameters!CollectionIDs.Value</Value>
           </QueryParameter>
+          <QueryParameter Name="@ExcludeClassificationList">
+            <Value>=Parameters!ExcludeClassificationList.Value</Value>
+          </QueryParameter>
         </QueryParameters>
         <CommandText>IF @SupersededVisible = 'Yes'
 	select UPD.Title
@@ -31,7 +34,7 @@
 		,count(UCS.CI_ID) over(partition by UCS.CI_ID) as [SystemsWithSameUpdate]
 		from v_UpdateComplianceStatus UCS
 		left join v_CITargetedMachines CTM on CTM.CI_ID = UCS.CI_ID and CTM.ResourceID = UCS.ResourceID
-		inner join v_CICategoryInfo_All CCI on CCI.CI_ID = UCS.CI_ID and CCI.CategoryTypeName = 'UpdateClassification' and (CCI.CategoryInstanceName = 'Security Updates' or CCI.CategoryInstanceName = 'Critical Updates')
+		inner join v_CICategoryInfo_All CCI on CCI.CI_ID = UCS.CI_ID and CCI.CategoryTypeName = 'UpdateClassification' and (CCI.CategoryInstanceName = 'Security Updates' or CCI.CategoryInstanceName = 'Critical Updates') and CCI.CategoryInstanceName not in (@ExcludeClassificationList)
 		inner join v_UpdateInfo UPD on UPD.CI_ID = UCS.CI_ID
 		inner join v_R_System VRS on VRS.ResourceID = UCS.ResourceID 
 		where UCS.ResourceID IN (Select ResourceID from v_FullCollectionMembership fcm where fcm.CollectionID IN (@CollectionIDs))
@@ -54,7 +57,7 @@ ELSE
 		,count(UCS.CI_ID) over(partition by UCS.CI_ID) as [SystemsWithSameUpdate]
 		from v_UpdateComplianceStatus UCS
 		left join v_CITargetedMachines CTM on CTM.CI_ID = UCS.CI_ID and CTM.ResourceID = UCS.ResourceID
-		inner join v_CICategoryInfo_All CCI on CCI.CI_ID = UCS.CI_ID and CCI.CategoryTypeName = 'UpdateClassification' and (CCI.CategoryInstanceName = 'Security Updates' or CCI.CategoryInstanceName = 'Critical Updates')
+		inner join v_CICategoryInfo_All CCI on CCI.CI_ID = UCS.CI_ID and CCI.CategoryTypeName = 'UpdateClassification' and (CCI.CategoryInstanceName = 'Security Updates' or CCI.CategoryInstanceName = 'Critical Updates') and CCI.CategoryInstanceName not in (@ExcludeClassificationList)
 		inner join v_UpdateInfo UPD on UPD.CI_ID = UCS.CI_ID
 		inner join v_R_System VRS on VRS.ResourceID = UCS.ResourceID 
 		where UCS.ResourceID IN (Select ResourceID from v_FullCollectionMembership fcm where fcm.CollectionID IN (@CollectionIDs))
@@ -677,6 +680,18 @@ ELSE
           </ParameterValue>
         </ParameterValues>
       </ValidValues>
+    </ReportParameter>
+    <ReportParameter Name="ExcludeClassificationList">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>..nothing excluded</Value>
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>ExcludeClassificationList</Prompt>
+      <Hidden>true</Hidden>
+      <MultiValue>true</MultiValue>
     </ReportParameter>
   </ReportParameters>
   <ReportParametersLayout>

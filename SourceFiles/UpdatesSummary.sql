@@ -14,6 +14,7 @@
 ---- if Microsoft has been advised of the possibility of such damages.
 -----------------------------------------------------------------------------------------------------------------------
 ---- Changelog:
+---- 2026-11-02: Added @ExcludeClassificationList to exclude updates by UpdateClassification
 ---- 2025-09-19: Added is to some peroperties to avoid NULL values ISNULL()
 ----			 Added query runtime to be able to show dataset runtime even if the data comes from a cached result
 ---- 2025-09-10: Changed the way Windows 11 and Server 2025 cumulative uodates are handled. Due to a change in cumulative update detection logic. 
@@ -42,6 +43,7 @@
 --- START just for testing in SQL directly
 Declare @CollectionID as varchar(max) = 'SMS00001' ---- semicolon seperated list of collectionIDs
 Declare @ExcludeProductList as varchar(max) = N'Microsoft Defender Antivirus;System Center Endpoint Protection'; ---- semicolon seperated list of update products
+Declare @ExcludeClassificationList as varchar(max) = N'..nothing excluded'; ---- semicolon seperated list of update classifications
 Declare @MonthIndex as int = 0; -- 0 = current month, 1 = previous month
 
 -- Using a bitmask like parameter. Makes it possible to use a multivalue parameter instead of multiple parameters to filter out some deployments
@@ -56,6 +58,7 @@ Declare @ExcludeDeplBitMask as varchar(20) = '8;16'---'2;4;8;16';
 ---- Extra variables to prevent variable performance issues in some SQL configurations
 Declare @CollectionIDList as varchar(max) = @CollectionID ---- semicolon seperated list of collectionIDs
 Declare @ExcludeProducts as varchar(max) = @ExcludeProductList ---- semicolon seperated list of update products
+Declare @ExcludeClassifications as varchar(max) = @ExcludeClassificationList ---- semicolon seperated list of update classifications
 Declare @MonthIndexInternal as int = @MonthIndex
 Declare @ExcludeDeplBitMaskInternal as varchar(20) = @ExcludeDeplBitMask
 
@@ -129,6 +132,34 @@ AS
                 END)) AS Product
     FROM CTE_ProductPieces 
 ),
+-- Create CTE for excluded update classifications. Same semicolon splitter as the product list.
+CTE_ClassificationPieces
+AS 
+(
+    SELECT 1 AS ID
+        ,1 AS [StartString]
+        ,Cast(CHARINDEX(';', @ExcludeClassifications,0) as int) AS StopString
+    UNION ALL
+    SELECT ID + 1
+                    ,StopString + 1
+                    ,Cast(CHARINDEX(';', @ExcludeClassifications, StopString + 1) as int)
+    FROM CTE_ClassificationPieces
+    WHERE StopString > 0
+)
+,CTE_Classifications
+AS
+(
+    SELECT Classification
+    FROM
+    (
+        SELECT (SUBSTRING(@ExcludeClassifications, StartString, 
+                                    CASE WHEN StopString > 0 THEN StopString - StartString
+                                    ELSE LEN(@ExcludeClassifications)
+                    END)) AS Classification
+        FROM CTE_ClassificationPieces 
+    ) AS ParsedClassifications
+    WHERE Classification <> '' AND Classification <> '..nothing excluded'
+),
 -- Using the same CTE function to convert parameter arraylist to CTE as with other multi value parameters due to perf issues on some SQL systems
 CTE_ExcludePieces
 AS 
@@ -200,6 +231,26 @@ ExcludedDeployments (AssignmentID,AssignmentType, CI_ID) as
             inner join v_CIAssignmentToCI CIATOCI on CIATOCI.AssignmentID = CIA.AssignmentID 
             inner join v_CICategoryInfo CICI on CICI.Ci_ID = CIATOCI.CI_ID
 			inner join CTE_Products PR on PR.Product = CICI.CategoryInstanceName
+),
+ExcludedClassificationCIs (CI_ID) as
+(
+			-- Updates whose UpdateClassification is in the exclusion list
+			select distinct CICI.CI_ID
+			from v_CICategoryInfo_All CICI
+			inner join CTE_Classifications CL on CL.Classification = CICI.CategoryInstanceName
+			where CICI.CategoryTypeName = 'UpdateClassification'
+),
+-- Deployments that contain only excluded classifications. A deployment that also
+-- contains any other classification stays in the compliance rollup.
+ExcludedClassificationAssignments (AssignmentID) as
+(
+			select CIATOCI.AssignmentID
+			from v_CIAssignmentToCI CIATOCI
+			inner join v_CIAssignment CIA on CIA.AssignmentID = CIATOCI.AssignmentID
+			where CIA.AssignmentType in (1,5) -- 1 = updates, 5 = update groups
+			and exists (select 1 from CTE_Classifications)
+			group by CIATOCI.AssignmentID
+			having sum(case when CIATOCI.CI_ID in (select CI_ID from ExcludedClassificationCIs) then 0 else 1 end) = 0
 ),
 -- list of cumulative updates of the current and the past month
 CumulativeUpdates (ArticleID,CI_ID, Latest, Title) as
@@ -329,10 +380,12 @@ left join (
 							 inner join v_CIAssignment CIA on CIA.AssignmentID = CATC.AssignmentID
 							 where CIA.AssignmentType in (1,5) -- 1 = updates, 5 = update groups
 							 and CIA.AssignmentID not in (Select AssignmentID from ExcludedDeployments) -- Exclude some deployments based on parameter settings
+							 and CATC.CI_ID not in (Select CI_ID from ExcludedClassificationCIs) -- exclude updates in the selected classifications
 							 group by ATM.ResourceID, CATC.CI_ID
               ) as AssignedUpdates on UCS.ResourceID = AssignedUpdates.ResourceID and AssignedUpdates.CI_ID = UCS.CI_ID
               where upd.IsHidden = 0 and upd.CIType_ID in (1,8) --- 1 = update, 8 = update bundle, 9 = update group
 			  and ucs.CI_ID not in (Select CI_ID from ExcludedDeployments) -- exclude Defender and SCEP from statistic
+			  and ucs.CI_ID not in (Select CI_ID from ExcludedClassificationCIs) -- exclude updates in the selected classifications
               group by ucs.ResourceID
 ) UPDATESTATES on UPDATESTATES.ResourceID = VRS.ResourceID
 --- join last Rollup as reference
@@ -360,6 +413,7 @@ left join (
               FROM v_UpdateAssignmentStatus uas
               inner join ResourceList on ResourceList.ResourceID = uas.ResourceID
               where UAS.AssignmentID not in (Select AssignmentID from ExcludedDeployments) -- exclude defender and scep deployments from compliants as well as other deployments if selected
+              and UAS.AssignmentID not in (Select AssignmentID from ExcludedClassificationAssignments) -- exclude deployments that contain only excluded classifications
               group by uas.ResourceID
 ) as AssignmentStatus on AssignmentStatus.ResourceID = VRS.ResourceID
 ---- join last update installdate for security updates just as a reference to find problematic clients not installing security updates at all
